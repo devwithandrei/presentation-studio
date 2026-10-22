@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum PresentationStatus {
+  DRAFT
+  READY
+  ARCHIVED
+}
+
+enum ShareVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+model User {
+  id            String         @id @default(cuid())
+  clerkId       String         @unique
+  email         String         @unique
+  name          String?
+  role          UserRole       @default(OWNER)
+  projects      Project[]
+  presentations Presentation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Project {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  presentations Presentation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([ownerId])
+}
+
+model Presentation {
+  id           String             @id @default(cuid())
+  title        String
+  description  String?
+  category     String             @default("Algemeen")
+  status       PresentationStatus @default(DRAFT)
+  visibility   ShareVisibility    @default(PRIVATE)
+  shareToken   String?            @unique
+  passwordHash String?
+  theme        Json               @default("{}")
+  ownerId      String
+  owner        User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  templateId   String?
+  template     Template?          @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  narrationSettings Json          @default("{}")
+  language     String             @default("nl")
+  translationNeedsReview Boolean  @default(false)
+  slides       Slide[]
+  permissions  PresentationPermission[]
+  assets       Asset[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([ownerId, updatedAt])
+  @@index([projectId])
+  @@index([status])
+}
+
+model Slide {
+  id             String       @id @default(cuid())
+  presentationId String
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  position       Int
+  title          String
+  subtitle       String?
+  layout         String       @default("content")
+  content        Json         @default("{}")
+  style          Json         @default("{}")
+  narrationText  String       @default("")
+  speakerNotes   SpeakerNote?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([presentationId, position])
+  @@index([presentationId])
+}
+
+model SpeakerNote {
+  id        String   @id @default(cuid())
+  slideId   String   @unique
+  slide     Slide    @relation(fields: [slideId], references: [id], onDelete: Cascade)
+  body      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  category      String
+  description   String
+  thumbnail     String?
+  theme         Json           @default("{}")
+  slides        Json
+  presentations Presentation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([category])
+}
+
+model Asset {
+  id             String       @id @default(cuid())
+  presentationId String
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  url            String
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  createdAt      DateTime     @default(now())
+
+  @@index([presentationId])
+}
+
+model PresentationPermission {
+  id             String       @id @default(cuid())
+  presentationId String
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  email          String
+  role           UserRole     @default(VIEWER)
+  createdAt      DateTime     @default(now())
+
+  @@unique([presentationId, email])
+  @@index([email])
+}
