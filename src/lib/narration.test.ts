@@ -17,6 +17,7 @@ class ControlledSpeech implements SpeechDriver {
   resumes = 0;
   cancellations = 0;
   muteStates: boolean[] = [];
+  volumeLevels: number[] = [];
 
   speak(text: string, request: SpeechRequest) {
     this.spoken.push(text);
@@ -26,6 +27,7 @@ class ControlledSpeech implements SpeechDriver {
   pause() { this.pauses += 1; }
   resume() { this.resumes += 1; }
   setMuted(muted: boolean) { this.muteStates.push(muted); }
+  setVolume(volume: number) { this.volumeLevels.push(volume); }
   cancel() {
     this.cancellations += 1;
     this.completions.splice(0).forEach((complete) => complete("cancelled"));
@@ -107,6 +109,12 @@ test("mute changes do not replace the active narration sequence", () => {
   assert.deepEqual(state.speech.muteStates, [true, false]);
   assert.equal(state.speech.spoken.length, 1);
   assert.deepEqual(state.indexes, [0]);
+});
+
+test("narration volume changes are forwarded to the speech driver", () => {
+  const state = fixture([slide("one", "Title")]);
+  state.player.setVolume(0.4);
+  assert.deepEqual(state.speech.volumeLevels, [0.4]);
 });
 
 test("an interrupted utterance does not leave playback stuck or advance slides", async () => {

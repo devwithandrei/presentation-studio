@@ -26,6 +26,8 @@ export class BrowserSpeechDriver implements SpeechDriver {
   private active: ActiveSpeech | null = null;
   private utteranceId = 0;
   private muted = false;
+  private volume = 1;
+  private volumeTimer: number | undefined;
 
   static available() {
     return typeof window !== "undefined" &&
@@ -82,6 +84,23 @@ export class BrowserSpeechDriver implements SpeechDriver {
   setMuted(muted: boolean) {
     if (this.muted === muted) return;
     this.muted = muted;
+    this.restartActive();
+  }
+
+  setVolume(volume: number) {
+    const nextVolume = Math.max(0, Math.min(1, volume));
+    if (this.volume === nextVolume) return;
+    this.volume = nextVolume;
+    if (this.volumeTimer !== undefined) window.clearTimeout(this.volumeTimer);
+    this.volumeTimer = window.setTimeout(() => {
+      this.volumeTimer = undefined;
+      this.restartActive();
+    }, 150);
+  }
+
+  private restartActive() {
+    if (this.volumeTimer !== undefined) window.clearTimeout(this.volumeTimer);
+    this.volumeTimer = undefined;
     const active = this.active;
     if (!active || !BrowserSpeechDriver.available()) return;
 
@@ -116,6 +135,8 @@ export class BrowserSpeechDriver implements SpeechDriver {
 
   cancel() {
     const active = this.active;
+    if (this.volumeTimer !== undefined) window.clearTimeout(this.volumeTimer);
+    this.volumeTimer = undefined;
     this.active = null;
     this.utteranceId += 1;
     if (BrowserSpeechDriver.available()) window.speechSynthesis.cancel();
@@ -139,7 +160,7 @@ export class BrowserSpeechDriver implements SpeechDriver {
     utterance.lang = active.request.language;
     utterance.voice = voice;
     utterance.rate = active.request.rate;
-    utterance.volume = this.muted ? 0 : 1;
+    utterance.volume = this.muted ? 0 : this.volume;
     const utteranceId = ++this.utteranceId;
     active.utteranceId = utteranceId;
 

@@ -69,7 +69,7 @@ export async function translateWithDeepL(texts: string[], target: PresentationLa
   const key = process.env.DEEPL_API_KEY;
   if (!key) throw new Error("Translation is not configured. Add DEEPL_API_KEY to the server environment.");
 
-  const targetLanguage: Record<PresentationLanguage, string> = { nl: "NL", ro: "RO", es: "ES" };
+  const targetLanguage: Record<PresentationLanguage, string> = { en: "EN-US", nl: "NL", ro: "RO", es: "ES" };
   const configuredUrl = process.env.DEEPL_API_URL ?? "https://api-free.deepl.com";
   const endpoint = new URL(configuredUrl.endsWith("/v2/translate") ? configuredUrl : `${configuredUrl.replace(/\/$/, "")}/v2/translate`);
   if (endpoint.protocol !== "https:" || !["api-free.deepl.com", "api.deepl.com"].includes(endpoint.hostname)) {

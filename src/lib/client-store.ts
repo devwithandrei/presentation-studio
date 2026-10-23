@@ -10,11 +10,12 @@ export function readLocalPresentations(): StudioPresentation[] {
     return stored.map((presentation) => ({
       ...presentation,
       theme: { ...demoPresentations[0].theme, ...presentation.theme },
-      language: presentation.language ?? "nl",
+      language: presentation.language ?? "en",
       translationNeedsReview: presentation.translationNeedsReview ?? false,
       narrationSettings: {
         ...presentation.narrationSettings,
         rate: presentation.narrationSettings.rate ?? 1,
+        volume: presentation.narrationSettings.volume ?? 1,
         muted: presentation.narrationSettings.muted ?? false,
       },
     }));
@@ -27,6 +28,20 @@ export function writeLocalPresentations(presentations: StudioPresentation[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(presentations));
 }
 
+export function preferLocalPresentations(serverPresentations: StudioPresentation[], localPresentations: StudioPresentation[]) {
+  const localById = new Map(localPresentations.map((presentation) => [presentation.id, presentation]));
+  const serverIds = new Set(serverPresentations.map((presentation) => presentation.id));
+  return [
+    ...serverPresentations.map((serverPresentation) => {
+      const localPresentation = localById.get(serverPresentation.id);
+      return localPresentation && Date.parse(localPresentation.updatedAt) >= Date.parse(serverPresentation.updatedAt)
+        ? localPresentation
+        : serverPresentation;
+    }),
+    ...localPresentations.filter((presentation) => !serverIds.has(presentation.id)),
+  ];
+}
+
 export function mapServerPresentation(value: Record<string, unknown>): StudioPresentation {
   const slides = Array.isArray(value.slides) ? value.slides as Record<string, unknown>[] : [];
   return {
@@ -34,7 +49,7 @@ export function mapServerPresentation(value: Record<string, unknown>): StudioPre
     title: String(value.title),
     description: String(value.description ?? ""),
     category: String(value.category ?? "General"),
-    language: value.language === "ro" || value.language === "es" ? value.language : "nl",
+    language: value.language === "nl" || value.language === "ro" || value.language === "es" ? value.language : "en",
     translationNeedsReview: value.translationNeedsReview === true,
     status: value.status === "READY" || value.status === "ARCHIVED" ? value.status : "DRAFT",
     updatedAt: String(value.updatedAt ?? new Date().toISOString()),
@@ -44,7 +59,7 @@ export function mapServerPresentation(value: Record<string, unknown>): StudioPre
     narrationSettings: value.narrationSettings && typeof value.narrationSettings === "object"
       ? (() => {
         const settings = value.narrationSettings as NarrationSettings;
-        return { ...settings, rate: settings.rate ?? 1, muted: settings.muted ?? false };
+        return { ...settings, rate: settings.rate ?? 1, volume: settings.volume ?? 1, muted: settings.muted ?? false };
       })()
       : demoPresentations[0].narrationSettings,
     slides: slides.map((item, index) => {

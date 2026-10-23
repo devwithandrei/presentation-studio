@@ -8,6 +8,8 @@ export type StudioSlide = {
     body?: string;
     bullets?: string[];
     image?: string;
+    backgroundImage?: string;
+    mediaElements?: SlideMediaElement[];
     stats?: { value: string; label: string }[];
     textColors?: {
       eyebrow?: string;
@@ -17,19 +19,35 @@ export type StudioSlide = {
       bullets?: string;
       stats?: string;
     };
+    textStyleColors?: Record<string, string>;
+    textPositions?: Record<string, { x: number; y: number }>;
+    textSizes?: Record<string, number>;
   };
   notes: string;
   narrationText?: string;
 };
 
+export type SlideMediaElement = {
+  id: string;
+  type: "image" | "video" | "icon";
+  src?: string;
+  icon?: "home" | "heart" | "star" | "check" | "sparkles" | "arrow" | "idea";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type NarrationSettings = {
   rate: number;
+  volume?: number;
   voiceURI?: string;
   muted?: boolean;
 };
-export type PresentationLanguage = "nl" | "ro" | "es";
-export type SpeechLocale = "nl-NL" | "ro-RO" | "es-ES";
+export type PresentationLanguage = "en" | "nl" | "ro" | "es";
+export type SpeechLocale = "en-US" | "nl-NL" | "ro-RO" | "es-ES";
 export const speechLocaleForLanguage: Record<PresentationLanguage, SpeechLocale> = {
+  en: "en-US",
   nl: "nl-NL",
   ro: "ro-RO",
   es: "es-ES",
@@ -81,6 +99,17 @@ const templateLanguageCopy: Record<PresentationLanguage, {
   topics: string[];
   slides: { title: string; subtitle: string; eyebrow: string; body: string; bullets: string[]; stats: string[]; note: string }[];
 }> = {
+  en: {
+    names: ["Startup pitch", "SaaS product", "Sales presentation", "Business proposal", "Partnership proposal", "Investor presentation", "Product demo", "New business idea", "Blank canvas"],
+    topics: ["a startup", "a SaaS product", "a client proposal", "a business proposal", "a partnership", "an investment round", "a product demo", "a new business idea", "a blank presentation"],
+    slides: [
+      { title: "Your idea at a glance", subtitle: "Introduce the idea and who it is for.", eyebrow: "INTRODUCTION", body: "Replace this text with a short, clear introduction.", bullets: ["Describe the need", "Explain the approach you want to explore"], stats: ["To validate", "Current assumption"], note: "Explain why the idea may be relevant and mention open questions." },
+      { title: "The challenge", subtitle: "Describe the situation from your audience's perspective.", eyebrow: "THE CHALLENGE", body: "Use examples you can support.", bullets: ["Add a relatable situation", "Mention what you still want to research"], stats: ["Add source", "To validate"], note: "Distinguish your own assumptions from confirmed information." },
+      { title: "A possible solution", subtitle: "Explain how your approach addresses the need.", eyebrow: "THE APPROACH", body: "Replace this placeholder with the key parts of your solution.", bullets: ["Describe the first step", "Explain the value for the user"], stats: ["Add value", "Add label"], note: "Ask which parts are most relevant to your audience." },
+      { title: "What we still need to validate", subtitle: "Separate facts, assumptions, and plans.", eyebrow: "ASSUMPTIONS AND PLAN", body: "Only add information that you can verify.", bullets: ["Describe an assumption", "Explain how you could test it"], stats: ["Assumption", "To research"], note: "Avoid unsupported forecasts and state what is still unknown." },
+      { title: "The next step", subtitle: "Invite your audience to take a concrete next step.", eyebrow: "NEXT STEP", body: "Adapt this call to action to the conversation and audience.", bullets: ["Suggest a follow-up conversation", "Ask for feedback"], stats: ["Action", "Owner"], note: "End with an open question and agree on the next step together." },
+    ],
+  },
   nl: {
     names: ["Startuppitch", "SaaS-product", "Verkooppresentatie", "Zakelijk voorstel", "Samenwerkingsvoorstel", "Investeerderspresentatie", "Productdemo", "Nieuw businessidee", "Leeg canvas"],
     topics: ["een startup", "een SaaS-product", "een klantvoorstel", "een zakelijk voorstel", "een samenwerking", "een investeringsronde", "een productdemo", "een nieuw businessidee", "een lege presentatie"],
@@ -121,10 +150,11 @@ export function templateName(name: string, language: PresentationLanguage) {
   return templateLanguageCopy[language].names[index] ?? name;
 }
 
-export function createTemplateSlides(name: string, language: PresentationLanguage = "nl"): StudioSlide[] {
+export function createTemplateSlides(name: string, language: PresentationLanguage = "en"): StudioSlide[] {
   const copy = templateLanguageCopy[language];
   if (name === "Blank canvas") {
     const blankCopy = {
+      en: { title: "Start with your story", subtitle: "Add a subtitle", eyebrow: "PRESENTATION TITLE", body: "A short introduction to your idea.", notes: "Explain in one sentence why this story matters to your audience." },
       nl: { title: "Begin met jouw verhaal", subtitle: "Voeg een ondertitel toe", eyebrow: "PRESENTATIETITEL", body: "Een korte introductie van je idee.", notes: "Leg in één zin uit waarom dit verhaal belangrijk is voor je publiek." },
       ro: { title: "Începe cu povestea ta", subtitle: "Adaugă un subtitlu", eyebrow: "TITLUL PREZENTĂRII", body: "O scurtă introducere a ideii tale.", notes: "Explică într-o singură propoziție de ce această poveste este importantă pentru public." },
       es: { title: "Empieza con tu historia", subtitle: "Añade un subtítulo", eyebrow: "TÍTULO DE LA PRESENTACIÓN", body: "Una breve introducción a tu idea.", notes: "Explica en una frase por qué esta historia es importante para el público." },
@@ -149,6 +179,7 @@ export function createTemplateSlides(name: string, language: PresentationLanguag
       eyebrow: `${item.eyebrow} · ${String(index + 1).padStart(2, "0")}`,
       body: index === 0
         ? {
+          en: `Replace this text with a short, clear introduction to ${topic}.`,
           nl: `Vervang deze tekst door een korte, duidelijke introductie van ${topic}.`,
           ro: `Înlocuiește acest text cu o introducere scurtă și clară despre ${topic}.`,
           es: `Sustituye este texto por una introducción breve y clara sobre ${topic}.`,

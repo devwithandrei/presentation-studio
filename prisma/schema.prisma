@@ -68,7 +68,7 @@ model Presentation {
   templateId   String?
   template     Template?          @relation(fields: [templateId], references: [id], onDelete: SetNull)
   narrationSettings Json          @default("{}")
-  language     String             @default("nl")
+  language     String             @default("en")
   translationNeedsReview Boolean  @default(false)
   slides       Slide[]
   permissions  PresentationPermission[]

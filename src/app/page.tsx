@@ -7,11 +7,11 @@ import {
 } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createTemplateSlides, demoPresentations, templateName as localizedTemplateName, templates, type PresentationLanguage, type StudioPresentation } from "@/lib/demo-data";
-import { mapServerPresentation, readLocalPresentations, toServerPayload, writeLocalPresentations } from "@/lib/client-store";
+import { mapServerPresentation, preferLocalPresentations, readLocalPresentations, toServerPayload, writeLocalPresentations } from "@/lib/client-store";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SlideArtwork, SlideArtworkCopy } from "@/components/slide-artwork";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric" });
 
@@ -56,7 +56,7 @@ export default function Dashboard() {
   const [menuId, setMenuId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [storageMode, setStorageMode] = useState<"local" | "cloud">("local");
-  const [newLanguage, setNewLanguage] = useState<PresentationLanguage>("nl");
+  const [newLanguage, setNewLanguage] = useState<PresentationLanguage>("en");
 
   useEffect(() => {
     void Promise.resolve()
@@ -73,8 +73,9 @@ export default function Dashboard() {
         const rows = await response.json() as Record<string, unknown>[];
         const mapped = rows.map(mapServerPresentation);
         setStorageMode("cloud");
-        setItems(mapped);
-        writeLocalPresentations(mapped);
+        const merged = preferLocalPresentations(mapped, readLocalPresentations());
+        setItems(merged);
+        writeLocalPresentations(merged);
       })
       .catch(() => setNotice("Offline demo — changes are saved locally in this browser."))
       .finally(() => setLoaded(true));
@@ -101,6 +102,7 @@ export default function Dashboard() {
     const source = blank;
     const sourceSlides = createTemplateSlides(templateKey, language);
     const languageCopy = {
+      en: { new: "New presentation", suffix: "new", draft: "Draft", description: "A blank canvas for your story." },
       nl: { new: "Nieuwe presentatie", suffix: "nieuw", draft: "Concept", description: "Een leeg canvas voor jouw verhaal." },
       ro: { new: "Prezentare nouă", suffix: "nouă", draft: "Proiect", description: "O pagină goală pentru povestea ta." },
       es: { new: "Nueva presentación", suffix: "nueva", draft: "Borrador", description: "Un lienzo en blanco para tu historia." },
@@ -198,7 +200,7 @@ export default function Dashboard() {
         <div className="welcome-row">
           <div><div className="eyebrow-label"><span className="eyebrow-line" /> YOUR PERSONAL WORKSPACE</div><h1>Your stories, <em>in motion.</em></h1><p className="page-subtitle">Create, refine, and present your ideas with confidence.</p></div>
           <div className="welcome-actions">
-            <label className="field language-create"><span>New presentation language</span><select value={newLanguage} onChange={(event) => setNewLanguage(event.target.value as PresentationLanguage)}><option value="nl">Dutch</option><option value="ro">Romanian</option><option value="es">Spanish</option></select></label>
+            <label className="field language-create"><span>New presentation language</span><select value={newLanguage} onChange={(event) => setNewLanguage(event.target.value as PresentationLanguage)}><option value="en">English</option><option value="nl">Dutch</option><option value="es">Spanish</option><option value="ro">Romanian</option></select></label>
             <button className="button button-secondary" onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}><LayoutTemplate size={15} /> Browse templates</button>
             <button className="button button-primary" onClick={() => createPresentation()}><Plus size={16} /> New presentation</button>
           </div>
@@ -230,12 +232,8 @@ export default function Dashboard() {
             {visibleItems.map((item, index) => (
               <article className={`presentation-card ${index === 0 ? "featured-card" : ""}`} key={item.id}>
                 <div className={`card-preview preview-${index % 3}`}>
-                  <div className="preview-window">
-                    <div className="preview-copy"><span className="preview-eyebrow">{item.slides[0]?.content.eyebrow ?? "PRESENTATION"}</span><strong>{item.title}</strong><span>{item.slides[0]?.subtitle}</span></div>
-                    {item.slides[0]?.content.image && <Image src={item.slides[0].content.image} alt="" fill sizes="(max-width: 760px) 100vw, 30vw" unoptimized />}
-                    {index === 0 && <span className="preview-logo"><span>t</span> thuiszoek.nl</span>}
-                    <span className="slide-badge">{item.slides.length} slides</span>
-                  </div>
+                  {item.slides[0] && <SlideArtwork slide={item.slides[0]} index={0} total={item.slides.length} theme={item.theme} className="card-slide-artwork" showNumber={false}><SlideArtworkCopy slide={item.slides[0]} theme={item.theme} /></SlideArtwork>}
+                  <span className="slide-badge">{item.slides.length} slides</span>
                   <div className="card-hover-actions"><Link href={`/editor/${item.id}`} className="button button-primary button-small">Open editor <ArrowRight size={13} /></Link></div>
                 </div>
                 <div className="card-info">

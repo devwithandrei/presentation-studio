@@ -14,6 +14,7 @@ export type SpeechRequest = {
 export interface SpeechDriver {
   speak(text: string, request: SpeechRequest): Promise<SpeechOutcome>;
   setMuted(muted: boolean): void;
+  setVolume(volume: number): void;
   pause(): void;
   resume(): void;
   cancel(): void;
@@ -122,6 +123,10 @@ export class PresentationPlayback {
 
   setMuted(muted: boolean) {
     this.speech.setMuted(muted);
+  }
+
+  setVolume(volume: number) {
+    this.speech.setVolume(volume);
   }
 
   resume() {
